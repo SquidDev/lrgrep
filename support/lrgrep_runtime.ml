@@ -32,7 +32,7 @@ let sparse_lookup (table : sparse_table) (index : sparse_index) (lr1 : lr1)
   let vsize = String.get_uint8 table 1 in
   assert (index >= 0 && lr1 >= 0);
   let offset = 2 + (index + lr1) * (ksize + vsize) in
-  if offset + 4 > String.length table then
+  if offset + 2 > String.length table then
     None
   else if get_int table ~offset ksize = lr1 then
     Some (get_int table ~offset:(offset + ksize) vsize)
@@ -83,37 +83,48 @@ end
 module Interpreter (PE : Parse_errors) (P : Parser) =
 struct
 
+  let debug = Sys.getenv_opt "OCAMLTRACE" |> Option.is_some
+  let tracef fmt = if debug then Printf.printf fmt else Printf.ifprintf stdout fmt
+
   let interpret bank env candidate (pc : program_counter) =
     let pc = ref pc in
     let rec loop () =
       match program_step PE.program pc with
       | Store reg ->
+        tracef "[runtime] Store[%d] <- ELEM\n%!" reg;
         bank.(reg) <- P.top env;
         loop ()
       | Move (r1, r2) ->
+        tracef "[runtime] Store[%d] <- Store[%d]\n%!" r1 r2;
         (*prerr_endline "Store";*)
         bank.(r1) <- bank.(r2);
         loop ()
       | Yield pc' ->
+        tracef "[runtime] Yield %d\n%!" pc';
         (*prerr_endline "Yield";*)
         Some pc'
       | Accept (clause, start, count) ->
+        tracef "[runtime] Accept(%d, %d, %d)\n%!" clause start count;
         (*prerr_endline "Accept";*)
         candidate := (clause, Array.sub bank start count) :: !candidate;
         loop ()
       | Match index ->
+        tracef "[runtime] Match(%d) at state %d" index (P.current_state_number env);
         (*prerr_endline "Match";*)
         begin
           match sparse_lookup PE.table index (P.current_state_number env) with
           | Some pc' ->
             (*prerr_endline "Match success";*)
+            tracef " => Jump %d\n%!" pc';
             pc := pc'
           | None ->
+            tracef " => Pass\n%!";
             (*prerr_endline "Match failure";*)
             ()
         end;
         loop ()
       | Halt ->
+        tracef "[runtime] Halt\n%!";
         (*prerr_endline "Halt";*)
         None
     in

@@ -1,0 +1,31 @@
+{}
+
+rule error_message token = parse error
+
+| [expr .]; !
+  partial { 
+    match token with
+    | Parser_raw.EQUALS _ -> Some {|Unexpected "=" in expression. Did you mean "=="?|}
+    | _ -> None
+  }
+
+| [basic_stmt: LOCAL FUNCTION var .]
+  partial {
+    match token with
+    | Parser_raw.DOT _ -> Some {|Cannot use "local function" with tables. Try using "function" instead.|}
+    | _ -> None
+  }
+
+| ([basic_stmt: sep_list1(COMMA,name) . EQUALS] as names); !
+  partial {
+    Printf.printf "Option.is_some names = %b\n%!" (Option.is_some names);
+    None
+  }
+
+| OPAREN as lp; [. CPAREN]; !
+  { let (), startp, _endp = lp in
+    "Unclosed parenthesis at line " 
+    ^ string_of_int startp.pos_lnum
+    ^ ", character "
+    ^ string_of_int (startp.pos_cnum - startp.pos_bol)
+  }

@@ -1,0 +1,28 @@
+(executable
+ (name interpreter)
+ (libraries fix utils menhirSdk menhirLib lrgrep.runtime))
+
+(rule
+ (targets interpreter_data.ml)
+ (deps parser_raw.cmly)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run %{exe:../ocaml/embed.exe} grammar=parser_raw.cmly))))
+
+(ocamllex lexer_raw)
+
+(menhir
+ (modules parser_raw)
+ (flags :standard --inspection --table --cmly))
+
+(rule
+ (target parse_errors.ml)
+ (action
+  (run
+   %{exe:../src/main.exe}
+   %{dep:parse_errors.mlyl}
+   -g
+   %{dep:parser_raw.cmly}
+   -o
+   %{target})))

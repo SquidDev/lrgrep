@@ -6,7 +6,7 @@ open Misc
 let source_name = ref None
 let output_name = ref None
 let grammar_file = ref None
-let check_coverage = ref false
+let check_coverage = ref true
 
 let usage =
   Printf.sprintf
@@ -21,8 +21,6 @@ let print_version_num () =
 let print_version_string () =
   print_string "The Menhir parser lexer generator :-], version ";
   print_version_num ()
-
-let eprintf = Printf.eprintf
 
 let specs = [
   "-o", Arg.String (fun x -> output_name := Some x),
@@ -233,6 +231,27 @@ let output_table oc entry registers (program, table, remap) =
   print "  let program = %S\n" program;
   print "end\n"
 
+let pp_dfa out (dfa : Dfa.dfa) = 
+  Format.fprintf out "@[<v>digraph G {@;@[<v 2>  ";
+  Array.iter (fun state ->  
+    let i = Dfa.index state in 
+    let accepted = 
+      Dfa.accepted state
+      |> List.map (fun (x, _) -> Utils.Misc.string_of_index x) 
+      |> String.concat ", " 
+    in
+
+    Format.fprintf out "state_%d [label=%S];@," i ("accepting(" ^ accepted ^ ")");
+    (* Dump states. *)
+    List.iter (fun transition -> 
+      let j = Dfa.target transition in 
+      let state = Dfa.label transition |> Dfa.Regexp.Info.Lr1.set_to_string in
+      Format.fprintf out "state_%d -> state_%d [label=%S];@," i j state;
+      ) (Dfa.forward state)
+  
+  ) dfa;
+  Format.fprintf out "@]@,}@]"
+
 let process_entry oc entry =
   let cases, vars =
     let var_count = ref 0 in
@@ -307,7 +326,8 @@ let process_entry oc entry =
     let _symbols, typeable = recover_types dfa in
     gen_code entry oc optionals vars typeable entry.Syntax.clauses;
     output_char oc '\n';
-    output_table oc entry registers (Dfa.gen_table dfa liveness)
+    output_table oc entry registers (Dfa.gen_table dfa liveness);
+    Format.eprintf "%a" pp_dfa dfa;
   end
 
 

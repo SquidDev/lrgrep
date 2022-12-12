@@ -2,6 +2,9 @@ open Utils
 
 module RT = Lrgrep_runtime
 
+let debug = Sys.getenv_opt "OCAMLTRACE" |> Option.is_some
+let tracef fmt = if debug then Printf.printf fmt else Printf.ifprintf stdout fmt
+
 module Sparse_packer : sig
   type 'a t
   val make : unit -> 'a t
@@ -106,6 +109,11 @@ end = struct
             Used (k, v)
         )
     in
+    Array.iteri (fun i cell -> 
+      match cell with 
+      | Used (state, misc) -> tracef "[table] %d state=%d, value=%d\n" i state misc
+      | Unused -> tracef "[table] %d (empty)\n" i) table;
+
     let k_size = int_size !max_k in
     let v_size = int_size !max_v in
     let repr = Bytes.make (2 + Array.length table * (k_size + v_size)) '\x00' in
@@ -114,8 +122,11 @@ end = struct
     Array.iteri (fun i cell ->
         let offset = 2 + i * (k_size + v_size) in
         match cell with
-        | Unused -> set_int repr ~offset ~value:0 k_size
+        | Unused -> 
+          tracef "[table] %d MISS => offset=%d\n%!" i offset;
+          set_int repr ~offset ~value:0 k_size
         | Used (k, v) ->
+          tracef "[table] %d (k=%d, v=%d) => offset=%d\n%!" i k v offset;
           set_int repr ~offset ~value:k k_size;
           set_int repr ~offset:(offset + k_size) ~value:v v_size;
       ) table;
@@ -145,10 +156,12 @@ end = struct
 
   let emit t : RT.program_instruction -> _ = function
     | Store i ->
+      Printf.eprintf "[compile] %d: Store[%d] <- ELEM\n" (position t) i;
       assert (i <= 0xFF);
       Buffer.add_char t.buffer '\x01';
       Buffer.add_uint8 t.buffer i
     | Move (i, j) ->
+      Printf.eprintf "[compile] %d: Store[%d] <- Store[%d]\n" (position t)i j;
       assert (i <= 0xFF && j <= 0xFF);
       if i <> j then (
         Buffer.add_char t.buffer '\x02';
@@ -156,21 +169,25 @@ end = struct
         Buffer.add_uint8 t.buffer j
       )
     | Yield pos ->
+      Printf.eprintf "[compile] %d: Yield %d\n%!" (position t) pos;
       assert (pos <= 0xFFFFFF);
       Buffer.add_char t.buffer '\x03';
       Buffer.add_uint16_be t.buffer (pos land 0xFFFF);
       Buffer.add_uint8 t.buffer (pos lsr 16)
     | Accept (clause, start, count) ->
+      Printf.eprintf "[compile] %d: Accept(%d, %d, %d)\n%!" (position t)clause start count;
       assert (start <= 0xFF && count <= 0xFF);
       Buffer.add_char t.buffer '\x04';
       Buffer.add_uint8 t.buffer clause;
       Buffer.add_uint8 t.buffer start;
       Buffer.add_uint8 t.buffer count
     | Match index ->
+      Printf.eprintf "[compile] %d: Match(%d)\n%!" (position t)index;
       Buffer.add_char t.buffer '\x05';
       assert (index <= 0xFFFF);
       Buffer.add_uint16_be t.buffer index
     | Halt ->
+      Printf.eprintf "[compile] %d: Halt\n%!" (position t);
       Buffer.add_char t.buffer '\x06'
 
   let emit_yield_reloc t reloc =
