@@ -54,6 +54,7 @@ type atom_desc =
       longer productions are allowed.
       For instance, [. INT] will match an actual item of the form
       [foo: BAR . INT baz]. *)
+  | Atom_alternative of atom_desc list
   | Wildcard
     (* Matches all states *)
 
@@ -173,11 +174,12 @@ let rec print_symbol = function
       Cmon.list (List.map print_symbol args);
     ]
 
-let print_atom_desc = function
+let rec print_atom_desc = function
   | Symbol sym ->
     Cmon.construct "Symbol" [print_symbol sym]
   | Wildcard ->
     Cmon.constant "Wildcard"
+  | Atom_alternative alt -> Cmon.constructor "AtomAlt" (Cmon.list_map print_atom_desc alt)
   | Item {lhs; anchored; prefix; suffix} ->
     Cmon.crecord "Item" [
       "lhs"     , print_option print_symbol lhs;

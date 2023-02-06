@@ -247,7 +247,7 @@ module Make(Info : Sigs.INFO) : Sigs.REGEXP with module Info = Info = struct
   let transl_producers list =
     List.map (Option.map transl_symbol) list
 
-  let transl_atom = function
+  let rec transl_atom = function
     | Syntax.Symbol name ->
       State_indices.states_of_symbol (transl_symbol name)
     | Syntax.Item {lhs; anchored; prefix; suffix} ->
@@ -255,6 +255,8 @@ module Make(Info : Sigs.INFO) : Sigs.REGEXP with module Info = Info = struct
       let prefix = transl_producers prefix in
       let suffix = transl_producers suffix in
       Match_item.states_by_items ~lhs ~anchored ~prefix ~suffix
+    | Syntax.Atom_alternative alts ->
+        List.fold_left (fun lrs a -> IndexSet.union lrs (transl_atom a)) IndexSet.empty alts
     | Syntax.Wildcard ->
       Lr1.all
 

@@ -91,12 +91,20 @@ wild_symbol:
 | symbol { Some $1 }
 ;
 
-atom:
+atom_base:
 | "_"    { Wildcard }
 | symbol { Symbol $1 }
 | "[" anchored=boption("^") lhs=item_lhs prefix=wild_symbol* "." suffix=wild_symbol* "]"
   { Item {lhs; anchored; prefix; suffix} }
 ;
+
+atom_alt:
+| atom_base              { [$1] }
+| atom_alt "|" atom_base { $3 :: $1 }
+
+atom:
+| atom_base           { $1 }
+| "(" atom_alt ")"    { match $2 with | [x] -> x | xs -> Atom_alternative xs }
 
 %inline item_lhs:
 | (*empty*)  { None }
