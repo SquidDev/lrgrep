@@ -238,7 +238,7 @@ end = struct
   module Accept_set_map = Map.Make(Accept_set)
 
   (** Partition our states based on their accepting states. *)
-  let states_by_accepted_clauses dfa = 
+  let states_by_accepted_clauses dfa =
     let _, p = Array.fold_left (fun (i, map) state ->
       let map = Accept_set_map.update (Accept_set.of_list state.accept)
         (fun bucket -> Option.value ~default:IntSet.empty bucket |> IntSet.add i |> Option.some)
@@ -280,16 +280,16 @@ end = struct
           let transitions = List.fold_left (fun transitions (inputs, action) ->
               if IntSet.mem action.target states then (inputs, (source, action)) :: transitions
               else transitions
-            ) transitions state.transitions 
+            ) transitions state.transitions
           in
           (source + 1, transitions)
-        ) (0, []) dfa 
+        ) (0, []) dfa
       in
       (* Partition them based on the input symbol(s). *)
       let transitions = Int_refine.annotated_partition transitions in
       (* Then build a map of (input symbol(s), transition) -> source states. *)
-      let source_states = List.fold_left (fun source_states (_, our_transitions) -> 
-        let transitions = 
+      let source_states = List.fold_left (fun source_states (_, our_transitions) ->
+        let transitions =
           List.fold_left (fun transitions (source, transition) ->
             Transition_map.update transition
               (fun bucket -> Option.value ~default:IntSet.empty bucket |> IntSet.add source |> Option.some)
@@ -297,7 +297,7 @@ end = struct
             Transition_map.empty our_transitions
         in
         Transition_map.fold (fun _ s m -> IntSetSet.add s m) transitions source_states
-      ) IntSetSet.empty transitions in 
+      ) IntSetSet.empty transitions in
 
       (* Refine our equivalence sets, and add any new sets to the work list. *)
       let partition, work = IntSetSet.fold (fun x (partition, work) ->
@@ -318,12 +318,12 @@ end = struct
               (partition, work)
           )
           partition (partition, work)
-        ) source_states (partition, work) 
+        ) source_states (partition, work)
       in
       find_equivalent_states dfa partition work
 
   let minimize dfa =
-    let partition = states_by_accepted_clauses dfa in 
+    let partition = states_by_accepted_clauses dfa in
     let partition = find_equivalent_states dfa partition partition in
 
     (* Build a new reduced array of states. *)
@@ -343,19 +343,20 @@ end = struct
     in
 
     (* And then rewrite the transitions to point to the correct state. *)
-    Array.map (fun (idx, _) ->
+    Array.map (fun (idx, all) ->
       let state = dfa.(idx) in
-      let transitions = List.map 
-        (fun (lr1, action) -> (lr1, { action with target = IntMap.find action.target state_map})) 
+      let transitions = List.map
+        (fun (lr1, action) -> (lr1, { action with target = IntMap.find action.target state_map}))
         state.transitions
       in
-      { state with transitions }
+      let halting = IntSet.fold (fun i s -> IntSet.union dfa.(i).halting s) all IntSet.empty in
+      { state with transitions; halting }
     ) new_states
 
-  let minimize dfa = 
+  let minimize dfa =
     let t0 = Sys.time () in
     let dfa = minimize dfa in
-    let dt = Sys.time () -. t0 in 
+    let dt = Sys.time () -. t0 in
     Printf.eprintf "minimized to %d states in %.2fms\n" (Array.length dfa) (dt *. 1000.0);
     dfa
 end
