@@ -99,7 +99,7 @@ struct
         Some pc'
       | Accept (clause, start, count) ->
         (*prerr_endline "Accept";*)
-        candidate := (clause, Array.sub bank start count) :: !candidate;
+        candidate := (clause, Array.sub bank 0 count) :: !candidate;
         loop ()
       | Match index ->
         (*prerr_endline "Match";*)

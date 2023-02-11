@@ -163,6 +163,7 @@ let gen_code entry oc optionals vars var_typeable clauses =
     "let execute_%s %s : int * %s.MenhirInterpreter.element option array -> _ option = function\n"
     entry.Syntax.name (String.concat " " entry.Syntax.args) parser_module;
   List.iteri (fun index ((varnames, varindices), clause) ->
+      let varnames = List.rev varnames in
       let recover_types =
         let symbol_matcher s = match Symbols.prj s with
           | L t -> "T T_" ^ Info.Terminal.to_string t
@@ -173,16 +174,15 @@ let gen_code entry oc optionals vars var_typeable clauses =
             let types = match IndexMap.find_opt index var_typeable with
               | None -> None
               | Some (typ, cases) ->
-                let matchers =
-                  List.map symbol_matcher (IndexSet.elements cases)
+                let pp_matcher out matcher =
+                  Format.fprintf out "| %s -> ((x : %s), startp, endp) " (symbol_matcher matcher) typ
                 in
                 Some (
-                  Printf.sprintf "\
+                  Format.asprintf "\
                   match %s.MenhirInterpreter.incoming_symbol st with \
-                  | %s -> ((x : %s), startp, endp)
-                  | _ -> assert false
+                  %a| _ -> assert false
                   " parser_module
-                    (String.concat " | " matchers) typ
+                    (Format.pp_print_list pp_matcher) (IndexSet.elements cases)
                 )
             in
             match is_optional, types with
