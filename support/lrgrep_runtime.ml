@@ -97,7 +97,7 @@ struct
       | Yield pc' ->
         (*prerr_endline "Yield";*)
         Some pc'
-      | Accept (clause, start, count) ->
+      | Accept (clause, _start, count) ->
         (*prerr_endline "Accept";*)
         candidate := (clause, Array.sub bank 0 count) :: !candidate;
         loop ()

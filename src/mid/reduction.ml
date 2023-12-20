@@ -13,7 +13,6 @@ struct
     val derive : t -> t partial_derivative list
     val merge : t list -> t
     val compare : t -> t -> int
-    val cmon : t -> Cmon.t
   end
 
   module Cache (D : DERIVABLE) = struct
@@ -40,9 +39,6 @@ struct
 
     let compare t1 t2 =
       D.compare t1.d t2.d
-
-    let cmon t =
-      Cmon.constructor "Cache" (D.cmon t.d)
   end
 
   module Make (D : DERIVABLE) = struct
@@ -90,14 +86,6 @@ struct
         let result = compile source in
         cache := DMap.add source result !cache;
         result
-
-    let cmon compiled =
-      IndexMap.fold
-        (fun lr1 d acc ->
-           Cmon.tuple [Cmon.constant (Lr1.to_string lr1); D.cmon d] :: acc)
-        compiled.continuations []
-      |> List.rev
-      |> Cmon.list
 
     type t = {
       derivations: compilation;

@@ -2,5 +2,4 @@
 (ocamllex lexer)
 
 (library
- (name front)
- (libraries cmon))
+ (name front))

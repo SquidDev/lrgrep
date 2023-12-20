@@ -279,10 +279,6 @@ module type REGEXP = sig
 
     (** Compare two terms *)
     val compare : t -> t -> int
-
-    (** Print a term to a [Cmon] document. [var] arguments allow to customize
-        printing of variables. *)
-    val cmon : ?var:(var index -> Cmon.t) -> t -> Cmon.t
   end
 
   (** Represent stacks of regular expression continuations (plain [RE.t]s are
@@ -308,9 +304,6 @@ module type REGEXP = sig
 
     (** Compare two stacks. *)
     val compare : t -> t -> int
-
-    (** Print a stack to a Cmon document. *)
-    val cmon : t -> Cmon.t
   end
 
   (** A set of RE stacks.
@@ -380,9 +373,6 @@ module type REGEXP = sig
         [derive_in_reduction] implements this simpler notion.
     *)
     val derive_in_reduction : t -> (t * RE.var indexset) partial_derivative list
-
-    (** Print a set of KREs to a cmon document. *)
-    val cmon : t -> Cmon.t
   end
 
   (* Translate a clause in shallow syntax (defined in [Front.Syntax]) to a
@@ -559,9 +549,6 @@ module type REDUCTION = sig
 
     (** A total comparison function, suitable to implement [Map.OrderedType] *)
     val compare : t -> t -> int
-
-    (** Print a derivable object as a [Cmon.t] document *)
-    val cmon : t -> Cmon.t
   end
 
   (** The cache functor: it memoizes the output of [derive] function such
@@ -614,9 +601,6 @@ module type REDUCTION = sig
 
     (** Precompute derivations for a certain object to speed-up derivation *)
     val compile : compilation_cache -> D.t -> compilation
-
-    (** Dump the informations pre-computed in a [compilation] object *)
-    val cmon : compilation -> Cmon.t
 
     (** The initial transitions *)
     val initial : compilation -> transitions

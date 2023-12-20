@@ -140,6 +140,7 @@ let make_location startpos endpos = {
   end_pos = endpos.Lexing.pos_cnum;
 }
 
+(*
 let print_location {
     loc_file;
     start_pos;
@@ -232,3 +233,4 @@ let print_definition {header; entrypoints; trailer} : Cmon.t =
     "trailer", print_ocamlcode trailer;
   ]
 
+*)

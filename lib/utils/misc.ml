@@ -184,6 +184,7 @@ let cons_option x xs =
   | None -> xs
   | Some x -> x :: xs
 
+(*
 (** Turns a index into a cmon document *)
 let cmon_index =
   (Cmon.int : int -> Cmon.t :> _ index -> Cmon.t)
@@ -198,6 +199,7 @@ let cmon_indexset xs =
 (** Print a cmon document to a channel with sensible defaults *)
 let print_cmon oc cmon =
   PPrint.ToChannel.pretty 0.8 80 oc (Cmon.print cmon)
+*)
 
 let sort_and_merge compare merge l =
   let rec loop x xs = function

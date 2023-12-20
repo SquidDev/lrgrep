@@ -21,7 +21,6 @@ struct
         let ks, vs = List.split ts in
         (List.fold_left KRESet.union KRESet.empty ks,
          List.fold_left IndexSet.union IndexSet.empty vs)
-      let cmon (k, _) = KRESet.cmon k
     end)
 
   module Red = Reduction.Make(CachedKRESet)
@@ -49,13 +48,6 @@ struct
       {direct = Array.of_list (KRESet.elements direct); reduce = [||]}
 
     let empty = {direct = [||]; reduce = [||]}
-
-    let cmon t =
-      let rs = Printf.sprintf "{%d reductions}" (Array.length t.reduce) in
-      Cmon.record [
-        "direct", Cmon.array_map KRE.cmon t.direct;
-        "reduce", Cmon.constant rs;
-      ]
 
     let compare t1 t2 =
       let c = array_compare KRE.compare t1.direct t2.direct in
@@ -149,7 +141,7 @@ struct
       let reduction_cache = Red.make_compilation_cache () in
       let rec loop st stack =
         Printf.eprintf "------------------------\n";
-        Printf.eprintf "Matcher state:\n%a\n" print_cmon (cmon st);
+        Printf.eprintf "Matcher state:\n<opaque>\n";
         let accepted, transitions = derive ~reduction_cache st in
         Printf.eprintf "Matching actions: [%s]\n"
           (string_concat_map ";" (fun (x, _) -> string_of_index x) accepted);
@@ -326,8 +318,8 @@ struct
 
   let rec eval (dfa : dfa) (st : state_index) ~stack =
     Printf.eprintf "------------------------\n";
-    Printf.eprintf "Matcher in state %d:\n%a\n"
-      st print_cmon (Kern.cmon dfa.(st).kern);
+    Printf.eprintf "Matcher in state %d:\n<opaque>\n"
+      st;
     Printf.eprintf "Matching actions: [%s]\n"
       (string_concat_map ";" (fun (x, _) -> string_of_index x) dfa.(st).accepted);
     match stack with

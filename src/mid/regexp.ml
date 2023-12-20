@@ -35,24 +35,6 @@ module Make(Info : Sigs.INFO) : Sigs.REGEXP with module Info = Info = struct
 
     let compare t1 t2 =
       Int.compare t1.uid t2.uid
-
-    let cmon ?(var=fun x -> Cmon.constructor "Var" (cmon_index x)) t =
-      let rec aux t =
-        match t.desc with
-        | Set (lr1s, v) ->
-          Cmon.construct "Set" [
-            Cmon.constant
-              ("{" ^ string_of_int (IndexSet.cardinal lr1s) ^ " states}");
-            match v with
-            | None -> Cmon.constant "None"
-            | Some x -> Cmon.constructor "Some" (var x)
-          ]
-        | Alt ts -> Cmon.constructor "Alt" (Cmon.list_map aux ts)
-        | Seq ts -> Cmon.constructor "Seq" (Cmon.list_map aux ts)
-        | Star t -> Cmon.constructor "Star" (aux t)
-        | Reduce -> Cmon.constant "Reduce"
-      in
-      aux t
   end
 
   module KRE = struct
@@ -68,11 +50,6 @@ module Make(Info : Sigs.INFO) : Sigs.REGEXP with module Info = Info = struct
     type t =
       | Done of {clause: clause index}
       | More of RE.t * t
-
-    let rec cmon = function
-      | Done {clause} -> Cmon.constructor "Done" (cmon_index clause)
-      | More (re, t) ->
-        Cmon.cons (RE.cmon re) (cmon t)
 
     let rec compare k1 k2 =
       match k1, k2 with
@@ -137,8 +114,6 @@ module Make(Info : Sigs.INFO) : Sigs.REGEXP with module Info = Info = struct
             let ks, sets = List.split l in
             (of_list ks, List.fold_left IndexSet.union IndexSet.empty sets))
         (List.map (fun (s, v, k, ()) -> (s, (k, v))) !direct)
-
-    let cmon t = Cmon.list_map KRE.cmon (elements t)
   end
 
   (* State indices, used to translate symbols and items *)
